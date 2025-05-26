@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Optimizador de Programación Lineal - Avanzado</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-project-diagram"></i>
+                    <h1 class="main-header">Optimizador de Programación Lineal</h1>
+                </div>
+                <p class="subtitle">Algoritmo Símplex con visualización avanzada y análisis paso a paso</p>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-content">
+                    <h3 class="section-title"><i class="fas fa-cog"></i> Configuración del Problema</h3>
+                    
+                    <!-- Función Objetivo -->
+                    <div class="form-group card">
+                        <h4 class="section-title"><i class="fas fa-bullseye"></i> Función Objetivo</h4>
+                        
+                        <div class="form-field">
+                            <label for="objetivo-tipo">Tipo de optimización</label>
+                            <div class="select-wrapper">
+                                <select id="objetivo-tipo" class="form-control">
+                                    <option value="Maximizar"><i class="fas fa-chart-line"></i> Maximizar</option>
+                                    <option value="Minimizar"><i class="fas fa-chart-bar"></i> Minimizar</option>
+                                </select>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-field">
+                                <label for="coef-x">Coeficiente de X</label>
+                                <input type="number" id="coef-x" class="form-control" value="3" step="0.1" placeholder="3">
+                            </div>
+                            <div class="form-field">
+                                <label for="coef-y">Coeficiente de Y</label>
+                                <input type="number" id="coef-y" class="form-control" value="2" step="0.1" placeholder="2">
+                            </div>
+                        </div>
+                        
+                        <div class="objective-display card-highlight" id="objetivo-display">
+                            <div class="objective-preview">
+                                <span class="objective-type">Maximizar:</span>
+                                <span class="objective-formula">3x + 2y</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Restricciones -->
+                    <div class="form-group card">
+                        <h4 class="section-title"><i class="fas fa-sliders-h"></i> Restricciones</h4>
+                        
+                        <div class="btn-row">
+                            <button class="btn btn-success" id="btn-agregar-restriccion">
+                                <i class="fas fa-plus"></i> Agregar
+                            </button>
+                            <button class="btn btn-outline" id="btn-limpiar-restricciones">
+                                <i class="fas fa-trash-alt"></i> Limpiar
+                            </button>
+                        </div>
+                        
+                        <div id="restricciones-container" class="restrictions-list">
+                            <!-- Las restricciones se generan dinámicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Botones de acción -->
+                    <div class="form-group card">
+                        <h4 class="section-title"><i class="fas fa-rocket"></i> Resolver</h4>
+                        <button class="btn btn-primary btn-block" id="btn-resolver">
+                            <i class="fas fa-search"></i> RESOLVER PROBLEMA
+                        </button>
+                        <div class="spinner-container">
+                            <div class="spinner" id="loading-spinner"></div>
+                        </div>
+                        <button class="btn btn-outline btn-block" id="btn-paso-paso" style="display: none;">
+                            <i class="fas fa-list-ol"></i> VER SOLUCIÓN PASO A PASO
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Área principal -->
+            <div class="content-area">
+                <div class="content-grid">
+                    <!-- Resumen y Resultados -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="section-title"><i class="fas fa-file-alt"></i> Resumen del Problema</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="problem-summary">
+                                <div class="summary-section">
+                                    <h4>Función Objetivo:</h4>
+                                    <div class="objective-display card-highlight" id="resumen-objetivo">
+                                        <div class="objective-preview">
+                                            <span class="objective-type">Maximizar:</span>
+                                            <span class="objective-formula">3x + 2y</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="summary-section">
+                                    <h4>Restricciones:</h4>
+                                    <div id="resumen-restricciones" class="restrictions-summary">
+                                        <div class="restriction-formula">2x + 1y ≤ 20</div>
+                                        <div class="restriction-formula">1x + 2y ≤ 16</div>
+                                        <div class="restriction-formula">1x + 1y ≤ 9</div>
+                                    </div>
+                                    <div class="implicit-constraints">
+                                        <strong>Restricciones implícitas:</strong> x ≥ 0, y ≥ 0
+                                    </div>
+                                </div>
+                                
+                                <!-- Resultados -->
+                                <div id="resultados-container" class="results-section" style="display: none;">
+                                    <div class="section-header">
+                                        <h3 class="section-title"><i class="fas fa-check-circle"></i> Resultados Óptimos</h3>
+                                    </div>
+                                    
+                                    <div class="metrics-row">
+                                        <div class="metric-card">
+                                            <div class="metric-value" id="valor-x">0.0000</div>
+                                            <div class="metric-label">Valor de X</div>
+                                        </div>
+                                        <div class="metric-card">
+                                            <div class="metric-value" id="valor-y">0.0000</div>
+                                            <div class="metric-label">Valor de Y</div>
+                                        </div>
+                                        <div class="metric-card highlight">
+                                            <div class="metric-value" id="valor-objetivo">0.0000</div>
+                                            <div class="metric-label">Función Objetivo</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="section-header">
+                                        <h4 class="section-title"><i class="fas fa-clipboard-check"></i> Evaluación de Restricciones</h4>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="results-table" id="tabla-restricciones">
+                                            <thead>
+                                                <tr>
+                                                    <th>Restricción</th>
+                                                    <th>Valor Calculado</th>
+                                                    <th>Valor Límite</th>
+                                                    <th>Estado</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabla-restricciones-body">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <!-- Error -->
+                                <div id="error-container" style="display: none;">
+                                    <div class="alert alert-error">
+                                        <div class="alert-icon">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </div>
+                                        <div class="alert-content">
+                                            <strong>No se encontró solución factible</strong>
+                                            <p id="error-message">El conjunto de restricciones no permite una solución factible.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visualización -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="section-title"><i class="fas fa-chart-line"></i> Visualización Gráfica</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="grafico-placeholder" class="alert alert-info">
+                                <div class="alert-icon">
+                                    <i class="fas fa-info-circle"></i>
+                                </div>
+                                <div class="alert-content">
+                                    <strong>Configura tu problema</strong>
+                                    <p>Presiona 'RESOLVER PROBLEMA' para ver la visualización gráfica de la solución.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="chart-container">
+                                <canvas id="grafico-canvas" width="600" height="400" style="display: none;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Solución Paso a Paso -->
+                <div id="paso-a-paso-container" class="card" style="display: none;">
+                    <div class="card-header">
+                        <h3 class="section-title"><i class="fas fa-list-ol"></i> Solución Paso a Paso - Método Símplex</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="pasos-contenido" class="step-by-step-container">
+                            <!-- Los pasos se generan dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información adicional -->
+        <div class="expandable">
+            <div class="expandable-header" onclick="UI.toggleExpandable(this)">
+                <div class="expandable-title">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Guía de uso y características avanzadas</span>
+                </div>
+                <span class="expandable-icon"><i class="fas fa-chevron-down"></i></span>
+            </div>
+            <div class="expandable-content">
+                <div class="guide-content">
+                    <h4><i class="fas fa-question-circle"></i> Cómo usar esta herramienta</h4>
+                    <ol>
+                        <li>Define tu función objetivo seleccionando maximizar o minimizar e ingresando los coeficientes.</li>
+                        <li>Agrega todas las restricciones de tu problema de programación lineal.</li>
+                        <li>Haz clic en "Resolver Problema" para encontrar la solución óptima.</li>
+                        <li>Explora la solución paso a paso para entender el proceso del método Símplex.</li>
+                    </ol>
+                    
+                    <h4><i class="fas fa-lightbulb"></i> Consejos avanzados</h4>
+                    <ul>
+                        <li>Puedes usar valores decimales en los coeficientes.</li>
+                        <li>El sistema automáticamente considera las restricciones de no negatividad (x ≥ 0, y ≥ 0).</li>
+                        <li>Si no hay solución factible, el sistema te lo indicará claramente.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/simplex.js"></script>
+    <script src="js/grafico.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
