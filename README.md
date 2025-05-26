@@ -1,130 +1,87 @@
-Guía Completa de Instalación y Uso del Optimizador de Programación Lineal
-📥 Descarga e Instalación
-1. Clonar el repositorio desde GitHub
-Para obtener el sistema en tu máquina local, ejecuta el siguiente comando en tu terminal (necesitas Git instalado):
+# Optimizador de Programación Lineal - Guía de Instalación y Uso
 
+## 📋 Requisitos previos
+- Navegador web moderno (Chrome, Firefox, Edge)
+- Git (opcional, solo para descargar desde GitHub)
+- Python 3.x o Node.js (opcional, para servidor local)
+
+## 🚀 Instalación paso a paso
+
+### Método 1: Desde GitHub Pages (recomendado para uso rápido)
+1. Abre tu navegador web
+2. Visita: [https://tusuario.github.io/turepo/](https://tusuario.github.io/turepo/)
+
+### Método 2: Clonar y ejecutar localmente
+```bash
+# 1. Clona el repositorio
+git clone https://github.com/tusuario/turepo.git
+
+# 2. Navega al directorio del proyecto
+cd turepo
+
+# 3. (Opcional) Inicia un servidor local con Python
+python3 -m http.server 8000
+
+# 4. Abre en tu navegador:
+#    http://localhost:8000
+🖥️ Comandos básicos para desarrollo
 bash
-git clone https://github.com/tu-usuario/tu-repositorio.git
-Reemplaza tu-usuario/tu-repositorio con el nombre de tu repositorio en GitHub.
+# Actualizar el repositorio local
+git pull origin main
 
-2. Instalar dependencias (opcional)
-Si el proyecto usa alguna dependencia (como un servidor local), instálala con:
+# Si necesitas reinstalar dependencias (package.json debe existir)
+npm install
 
-bash
-cd tu-repositorio
-npm install  # Si usas Node.js
-3. Ejecutar el sistema localmente
-Opción 1: Abrir directamente en el navegador
-Simplemente abre el archivo index.html en tu navegador:
-
-Windows/Linux: Haz doble clic o arrástralo a tu navegador.
-
-Mac: Click derecho → "Abrir con" → [Tu navegador].
-
-Opción 2: Usar un servidor local (recomendado)
-Si el sistema no carga correctamente debido a restricciones de CORS, inicia un servidor local:
-
-Con Python (soporte en Windows, Mac, Linux):
-
-bash
-python3 -m http.server 8000  # Python 3
-Luego abre:
-👉 http://localhost:8000
-
-Con Node.js (si instalaste dependencias):
-
-bash
-npx live-server  # Instala live-server si no lo tienes: npm install -g live-server
-Se abrirá automáticamente en tu navegador.
-
-🚀 Guía de Uso del Sistema
+# Ejecutar con live-server (Node.js)
+npx live-server
+🎯 Guía de uso del sistema
 1. Configurar el problema
-Función Objetivo
-Selecciona si quieres Maximizar o Minimizar (🔺/🔻).
-
-Ingresa los coeficientes de X e Y (ejemplo: 3x + 2y).
-
-Restricciones
-Agregar restricciones: Haz clic en "➕ Agregar".
-
-Eliminar restricciones: Usa el botón 🗑️.
-
-Restaurar valores por defecto: "🗑️ Limpiar".
-
-📌 Ejemplo de restricción:
-
-2x + 1y ≤ 20
-1x + 2y ≤ 16
+bash
+1. Selecciona tipo de optimización: Maximizar/Minimizar
+2. Ingresa coeficientes para X e Y
+3. Configura las restricciones:
+   - Click en "➕ Agregar" para nuevas restricciones
+   - Usa "🗑️" para eliminar restricciones
 2. Resolver el problema
-Haz clic en "🔍 RESOLVER PROBLEMA" y espera a que el algoritmo calcule la solución.
+bash
+1. Click en "🔍 RESOLVER PROBLEMA"
+2. Espera a que se calcule la solución
+3. Los resultados aparecerán en:
+   - Valores óptimos de X e Y
+   - Valor de la función objetivo
+   - Tabla de evaluación de restricciones
+3. Visualizar resultados
+bash
+1. Gráfico interactivo muestra:
+   - Región factible (área roja)
+   - Líneas de restricción
+   - Solución óptima (punto rojo)
+2. Para ver detalles:
+   - Click en "📝 VER SOLUCIÓN PASO A PASO"
+🛠️ Solución de problemas comunes
+Gráfico no se muestra
+bash
+1. Verifica conexión a internet (se carga Chart.js desde CDN)
+2. Ejecuta con servidor local si estás en modo offline:
+   python3 -m http.server 8000
+Error "No hay solución factible"
+bash
+1. Revisa que las restricciones no sean contradictorias
+2. Asegúrate que al menos 2 restricciones estén bien definidas
+3. Verifica que los coeficientes sean números válidos
+📱 Compatibilidad
+✔️ Desktop (Chrome, Firefox, Edge)
 
-✅ Resultados mostrados:
+✔️ Tablets (modo horizontal recomendado)
 
-Valor óptimo de X e Y.
+⚠️ Móviles (funciona pero con experiencia limitada)
 
-Valor de la función objetivo.
+📄 Licencia
+MIT License - Libre uso y modificación
 
-Estado de cada restricción (✅ Cumple / ❌ Viola).
 
-📊 Visualización gráfica:
-
-Región factible (área roja).
-
-Líneas de restricciones.
-
-Puntos de solución óptima.
-
-3. Solución paso a paso
-Si quieres entender cómo se resolvió el problema, haz clic en:
-"📝 VER SOLUCIÓN PASO A PASO"
-
-📌 Contenido detallado:
-
-Configuración inicial del problema.
-
-Vértices de la región factible.
-
-Evaluación de la función objetivo en cada vértice.
-
-Solución óptima encontrada.
-
-🛠️ Solución de Problemas
-❌ El gráfico no se muestra
-Asegúrate de tener conexión a Internet (Chart.js se carga desde un CDN).
-
-Si usas el sistema localmente, ejecútalo con un servidor (python -m http.server o live-server).
-
-⚠️ "No se encontró solución factible"
-Revisa que las restricciones no sean contradictorias.
-
-Prueba con valores más flexibles.
-
-📱 ¿Funciona en móviles?
-✅ Sí, pero es mejor usarlo en pantallas grandes (tablet o PC) para mejor visualización.
-
-📌 Ejemplo Práctico
-Problema:
-
-Función objetivo: Maximizar Z = 3x + 2y.
-
-Restricciones:
-
-2x + y ≤ 20
-
-x + 2y ≤ 16
-
-x + y ≤ 9
-
-Solución esperada:
-
-X = 4, Y = 5.
-
-Z óptimo = 22.
-
-📜 Licencia
-Este proyecto es open-source bajo la licencia MIT. Puedes modificarlo y distribuirlo libremente.
-
-🔗 Enlace al repositorio
-👉 https://github.com/tu-usuario/tu-repositorio
-
-📢 ¡Listo! Ahora puedes usar el sistema para resolver problemas de programación lineal de manera interactiva. 🚀
+Este archivo README.md está listo para:
+1. Copiar y pegar directamente en tu repositorio
+2. Contiene todos los comandos necesarios
+3. Explica el flujo de uso paso a paso
+4. Incluye solución de problemas comunes
