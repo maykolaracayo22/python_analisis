@@ -76,7 +76,7 @@ if (solucion.factible) {
     const puntosRegion = [];
     
     // Función auxiliar para encontrar intersección entre dos líneas
-    function encontrarInterseccionLineas(r1, r2) {
+    function encontrarInterseccion(r1, r2) {
         const det = r1.x * r2.y - r1.y * r2.x;
         if (Math.abs(det) < 1e-10) return null; // Líneas paralelas
         
@@ -86,114 +86,84 @@ if (solucion.factible) {
         return { x, y };
     }
     
-    if (esMinimizar) {
-        // Para MINIMIZACIÓN: La región factible se extiende hacia arriba y derecha
-        // Encontrar el punto de intersección entre restricciones
-        let puntoInterseccion = null;
-        if (restricciones.length >= 2) {
-            puntoInterseccion = encontrarInterseccionLineas(restricciones[0], restricciones[1]);
+    // Agregar puntos candidatos
+    const puntosCandidatos = [];
+    
+    // 1. Origen (si es factible)
+    if (esPuntoFactible(0, 0, restricciones)) {
+        puntosCandidatos.push({ x: 0, y: 0 });
+    }
+    
+    // 2. Intersecciones con los ejes
+    restricciones.forEach(r => {
+        // Intersección con eje X (y = 0)
+        if (r.y !== 0) {
+            const x = r.valor / r.x;
+            if (x >= 0 && esPuntoFactible(x, 0, restricciones)) {
+                puntosCandidatos.push({ x: x, y: 0 });
+            }
         }
         
-        // Encontrar intersecciones con los ejes
-        const interseccionesEjes = [];
-        restricciones.forEach(r => {
-            // Intersección con eje X (y = 0)
-            if (r.x !== 0) {
-                const x = r.valor / r.x;
-                if (x >= 0) {
-                    interseccionesEjes.push({x: x, y: 0});
-                }
+        // Intersección con eje Y (x = 0)
+        if (r.x !== 0) {
+            const y = r.valor / r.y;
+            if (y >= 0 && esPuntoFactible(0, y, restricciones)) {
+                puntosCandidatos.push({ x: 0, y: y });
             }
-            
-            // Intersección con eje Y (x = 0)
-            if (r.y !== 0) {
-                const y = r.valor / r.y;
-                if (y >= 0) {
-                    interseccionesEjes.push({x: 0, y: y});
-                }
-            }
-        });
-        
-        // Para minimización, crear una región que se extienda hacia el infinito
-        // Usamos los bordes del gráfico como límites visuales
-        if (puntoInterseccion && puntoInterseccion.x >= 0 && puntoInterseccion.y >= 0) {
-            // Crear región desde el punto de intersección hacia los bordes
-            puntosRegion.push(puntoInterseccion);
-            
-            // Extender hacia la derecha
-            puntosRegion.push({x: xMax, y: puntoInterseccion.y});
-            puntosRegion.push({x: xMax, y: yMax});
-            
-            // Extender hacia arriba  
-            puntosRegion.push({x: puntoInterseccion.x, y: yMax});
-            
-            // Volver al punto inicial
-            puntosRegion.push(puntoInterseccion);
-        } else {
-            // Si no hay intersección clara, usar las intersecciones con ejes
-            interseccionesEjes.forEach(punto => {
-                if (esPuntoFactible(punto.x, punto.y, restricciones)) {
-                    puntosRegion.push(punto);
-                }
-            });
-            
-            // Agregar esquinas del gráfico que sean factibles
-            const esquinas = [
-                {x: xMax, y: 0},
-                {x: xMax, y: yMax},
-                {x: 0, y: yMax}
-            ];
-            
-            esquinas.forEach(esquina => {
-                if (esPuntoFactible(esquina.x, esquina.y, restricciones)) {
-                    puntosRegion.push(esquina);
-                }
-            });
         }
-        
-    } else {
-        // Para MAXIMIZACIÓN: Región factible típicamente acotada
-        // 1. Agregar el origen si es factible
-        if (esPuntoFactible(0, 0, restricciones)) {
-            puntosRegion.push({x: 0, y: 0});
-        }
-        
-        // 2. Agregar intersecciones con los ejes
-        restricciones.forEach(r => {
-            // Intersección con eje X (y = 0)
-            if (r.x !== 0) {
-                const x = r.valor / r.x;
-                if (x >= 0 && esPuntoFactible(x, 0, restricciones)) {
-                    puntosRegion.push({x: x, y: 0});
-                }
-            }
-            
-            // Intersección con eje Y (x = 0)  
-            if (r.y !== 0) {
-                const y = r.valor / r.y;
-                if (y >= 0 && esPuntoFactible(0, y, restricciones)) {
-                    puntosRegion.push({x: 0, y: y});
-                }
-            }
-        });
-        
-        // 3. Agregar intersecciones entre restricciones
-        for (let i = 0; i < restricciones.length; i++) {
-            for (let j = i + 1; j < restricciones.length; j++) {
-                const interseccion = encontrarInterseccionLineas(restricciones[i], restricciones[j]);
-                if (interseccion && 
-                    interseccion.x >= -1e-6 && 
-                    interseccion.y >= -1e-6 && 
-                    esPuntoFactible(interseccion.x, interseccion.y, restricciones)) {
-                    puntosRegion.push(interseccion);
-                }
+    });
+    
+    // 3. Intersecciones entre restricciones
+    for (let i = 0; i < restricciones.length; i++) {
+        for (let j = i + 1; j < restricciones.length; j++) {
+            const interseccion = encontrarInterseccion(restricciones[i], restricciones[j]);
+            if (interseccion && 
+                interseccion.x >= -1e-10 && 
+                interseccion.y >= -1e-10 && 
+                esPuntoFactible(interseccion.x, interseccion.y, restricciones)) {
+                puntosCandidatos.push(interseccion);
             }
         }
     }
     
+    // 4. Para problemas de minimización, agregar puntos en los límites del gráfico
+    if (esMinimizar) {
+        // Intersecciones con los bordes del gráfico
+        restricciones.forEach(r => {
+            // Intersección con x = xMax
+            if (r.y !== 0) {
+                const y = (r.valor - r.x * xMax) / r.y;
+                if (y >= 0 && y <= yMax && esPuntoFactible(xMax, y, restricciones)) {
+                    puntosCandidatos.push({ x: xMax, y: y });
+                }
+            }
+            
+            // Intersección con y = yMax
+            if (r.x !== 0) {
+                const x = (r.valor - r.y * yMax) / r.x;
+                if (x >= 0 && x <= xMax && esPuntoFactible(x, yMax, restricciones)) {
+                    puntosCandidatos.push({ x: x, y: yMax });
+                }
+            }
+        });
+        
+        // Esquinas del gráfico (si son factibles)
+        const esquinas = [
+            { x: 0, y: yMax },
+            { x: xMax, y: 0 },
+            { x: xMax, y: yMax }
+        ];
+        
+        esquinas.forEach(punto => {
+            if (esPuntoFactible(punto.x, punto.y, restricciones)) {
+                puntosCandidatos.push(punto);
+            }
+        });
+    }
+    
     // Eliminar puntos duplicados
     const puntosUnicos = [];
-    puntosRegion.forEach(punto => {
+    puntosCandidatos.forEach(punto => {
         const existe = puntosUnicos.some(p => 
             Math.abs(p.x - punto.x) < 1e-6 && Math.abs(p.y - punto.y) < 1e-6
         );
@@ -202,23 +172,82 @@ if (solucion.factible) {
         }
     });
     
-    // Ordenar puntos para formar un polígono cerrado
-    const puntosOrdenados = ordenarPuntosPoligono(puntosUnicos);
-    
-    if (puntosOrdenados.length >= 3) {
-        datasets.push({
-            type: 'line',
-            label: 'Región Factible',
-            data: puntosOrdenados,
-            backgroundColor: esMinimizar ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-            borderColor: esMinimizar ? 'rgba(34, 197, 94, 0.6)' : 'rgba(239, 68, 68, 0.6)',
-            borderWidth: 2,
-            pointRadius: 0,
-            fill: true,
-            tension: 0,
-            order: 2
-        });
+    // Filtrar puntos que realmente forman la región factible
+    if (puntosUnicos.length >= 3) {
+        // Para maximización: usar solo los vértices del polígono convexo
+        // Para minimización: usar todos los puntos factibles encontrados
+        let puntosFinales;
+        
+        if (esMinimizar) {
+            puntosFinales = puntosUnicos;
+        } else {
+            // Para maximización, calcular el casco convexo
+            puntosFinales = calcularCascoConvexo(puntosUnicos);
+        }
+        
+        // Ordenar puntos para formar un polígono cerrado
+        const puntosOrdenados = ordenarPuntosPoligono(puntosFinales);
+        
+        if (puntosOrdenados.length >= 3) {
+            datasets.push({
+                type: 'line',
+                label: 'Región Factible',
+                data: puntosOrdenados,
+                backgroundColor: esMinimizar ? 'rgba(34, 197, 94, 0.07)' : 'rgba(239, 68, 68, 0.2)',
+                borderColor: esMinimizar ? 'rgba(34, 197, 94, 0.6)' : 'rgba(239, 68, 68, 0.6)',
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: true,
+                tension: 0,
+                order: 2
+            });
+        }
     }
+}
+
+// Función auxiliar para calcular el casco convexo (algoritmo de Graham)
+function calcularCascoConvexo(puntos) {
+    if (puntos.length <= 3) return puntos;
+    
+    // Encontrar el punto más bajo (y menor x en caso de empate)
+    let puntoBase = puntos[0];
+    for (let i = 1; i < puntos.length; i++) {
+        if (puntos[i].y < puntoBase.y || 
+            (puntos[i].y === puntoBase.y && puntos[i].x < puntoBase.x)) {
+            puntoBase = puntos[i];
+        }
+    }
+    
+    // Función para calcular el producto cruzado
+    function productoCruzado(o, a, b) {
+        return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    }
+    
+    // Ordenar puntos por ángulo polar respecto al punto base
+    const puntosOrdenados = puntos.filter(p => p !== puntoBase)
+        .sort((a, b) => {
+            const cruz = productoCruzado(puntoBase, a, b);
+            if (cruz === 0) {
+                // Si están en la misma línea, ordenar por distancia
+                const distA = Math.pow(a.x - puntoBase.x, 2) + Math.pow(a.y - puntoBase.y, 2);
+                const distB = Math.pow(b.x - puntoBase.x, 2) + Math.pow(b.y - puntoBase.y, 2);
+                return distA - distB;
+            }
+            return -cruz;
+        });
+    
+    // Construir el casco convexo
+    const casco = [puntoBase];
+    
+    for (let punto of puntosOrdenados) {
+        while (casco.length > 1 && 
+               productoCruzado(casco[casco.length-2], casco[casco.length-1], punto) <= 0) {
+            casco.pop();
+        }
+        casco.push(punto);
+    }
+    
+    return casco;
 }
         
         // 3. Solución óptima
