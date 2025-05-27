@@ -60,21 +60,21 @@ Valor óptimo: Z* = ${mejorZ.toFixed(4)}`
     }
 
     // Encontrar vértices de la región factible
-    function encontrarVertices(restricciones) {
-        const vertices = [];
-        
-        // Agregar origen (0,0) si es factible
-        if (esPuntoFactible(0, 0, restricciones)) {
-            vertices.push({x: 0, y: 0});
-        }
-        
-        // Intersecciones con ejes
-        for (let r of restricciones) {
-            if (r.comparacion === '<=' || r.comparacion === '=') {
+    // En simplex.js, reemplaza la función encontrarVertices con esta versión mejorada:
+
+        // En simplex.js, modifica la función encontrarVertices:
+
+        function encontrarVertices(restricciones) {
+            const vertices = [];
+            const xMax = 50; // Límite superior para búsqueda
+            const yMax = 50; // Límite superior para búsqueda
+            
+            // 1. Intersecciones con ejes para cada restricción
+            for (let r of restricciones) {
                 // Intersección con eje X (y = 0)
                 if (r.x !== 0) {
                     const x = r.valor / r.x;
-                    if (x >= 0 && esPuntoFactible(x, 0, restricciones)) {
+                    if (x >= 0 && x <= xMax && esPuntoFactible(x, 0, restricciones)) {
                         vertices.push({x: x, y: 0});
                     }
                 }
@@ -82,29 +82,48 @@ Valor óptimo: Z* = ${mejorZ.toFixed(4)}`
                 // Intersección con eje Y (x = 0)
                 if (r.y !== 0) {
                     const y = r.valor / r.y;
-                    if (y >= 0 && esPuntoFactible(0, y, restricciones)) {
+                    if (y >= 0 && y <= yMax && esPuntoFactible(0, y, restricciones)) {
                         vertices.push({x: 0, y: y});
                     }
                 }
             }
-        }
-        
-        // Intersecciones entre restricciones
-        for (let i = 0; i < restricciones.length; i++) {
-            for (let j = i + 1; j < restricciones.length; j++) {
-                const interseccion = encontrarInterseccion(restricciones[i], restricciones[j]);
-                if (interseccion && interseccion.x >= 0 && interseccion.y >= 0 && 
-                    esPuntoFactible(interseccion.x, interseccion.y, restricciones)) {
-                    vertices.push(interseccion);
+            
+            // 2. Intersecciones entre todas las combinaciones de restricciones
+            for (let i = 0; i < restricciones.length; i++) {
+                for (let j = i + 1; j < restricciones.length; j++) {
+                    const interseccion = encontrarInterseccion(restricciones[i], restricciones[j]);
+                    if (interseccion && interseccion.x >= 0 && interseccion.y >= 0 && 
+                        interseccion.x <= xMax && interseccion.y <= yMax &&
+                        esPuntoFactible(interseccion.x, interseccion.y, restricciones)) {
+                        vertices.push(interseccion);
+                    }
                 }
             }
+            
+            // 3. Puntos adicionales para restricciones "≥" que no intersectan los ejes
+            for (let r of restricciones.filter(r => r.comparacion === '>=')) {
+                // Punto aleatorio que cumpla la restricción para ayudar a definir la región
+                const xTest = r.valor / r.x * 1.5;
+                const yTest = r.valor / r.y * 1.5;
+                if (xTest <= xMax && yTest <= yMax && esPuntoFactible(xTest, yTest, restricciones)) {
+                    vertices.push({x: xTest, y: yTest});
+                }
+            }
+            
+            // Eliminar duplicados
+            const verticesUnicos = [];
+            const encontrados = new Set();
+            
+            for (const v of vertices) {
+                const clave = `${v.x.toFixed(4)}_${v.y.toFixed(4)}`;
+                if (!encontrados.has(clave)) {
+                    encontrados.add(clave);
+                    verticesUnicos.push(v);
+                }
+            }
+            
+            return verticesUnicos;
         }
-        
-        // Eliminar duplicados
-        return vertices.filter((v, index, arr) => 
-            arr.findIndex(v2 => Math.abs(v.x - v2.x) < 1e-10 && Math.abs(v.y - v2.y) < 1e-10) === index
-        );
-    }
 
     // Encontrar intersección entre dos restricciones
     function encontrarInterseccion(r1, r2) {

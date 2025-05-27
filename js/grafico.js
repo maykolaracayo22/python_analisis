@@ -1,6 +1,20 @@
-// Módulo de visualización gráfica
+// Módulo de visualización gráfica - Versión corregida completa
 const Grafico = (() => {
     let chart = null;
+
+    // Función para verificar si un punto es factible
+    function esPuntoFactible(x, y, restricciones) {
+        if (x < -1e-10 || y < -1e-10) return false; // Violación de no negatividad
+        
+        for (let r of restricciones) {
+            const valor = r.x * x + r.y * y;
+            if (r.comparacion === '<=' && valor > r.valor + 1e-10) return false;
+            if (r.comparacion === '>=' && valor < r.valor - 1e-10) return false;
+            if (r.comparacion === '=' && Math.abs(valor - r.valor) > 1e-10) return false;
+        }
+        
+        return true;
+    }
 
     // Crear gráfico con la solución
     function crear(solucion, restricciones) {
@@ -16,32 +30,10 @@ const Grafico = (() => {
             chart.destroy();
         }
 
-    // Ordenar vértices para formar un polígono correcto (sentido horario o antihorario)
-    function ordenarVerticesPoligono(vertices) {
-        if (vertices.length < 3) return vertices;
-        
-        // Encontrar el centroide
-        const centroide = {
-            x: vertices.reduce((sum, v) => sum + v.x, 0) / vertices.length,
-            y: vertices.reduce((sum, v) => sum + v.y, 0) / vertices.length
-        };
-        
-        // Ordenar por ángulo respecto al centroide
-        const verticesOrdenados = vertices.slice().sort((a, b) => {
-            const anguloA = Math.atan2(a.y - centroide.y, a.x - centroide.x);
-            const anguloB = Math.atan2(b.y - centroide.y, b.x - centroide.x);
-            return anguloA - anguloB;
-        });
-        
-        return verticesOrdenados;
-    }
-        
-        // Calcular límites del gráfico de forma más robusta
+        // Calcular límites del gráfico
         const limites = calcularLimites(solucion, restricciones);
         const xMax = limites.xMax;
         const yMax = limites.yMax;
-        
-        console.log('Límites del gráfico:', { xMax, yMax }); // Debug
         
         // Colores para las restricciones
         const colors = [
@@ -56,144 +48,238 @@ const Grafico = (() => {
         // Preparar datasets para el gráfico
         const datasets = [];
         
-        // 1. Región factible (área sombreada en rojo)
-        if (solucion.vertices && solucion.vertices.length >= 2) {
-            // Ordenar vértices para formar un polígono correcto
-            const verticesOrdenados = ordenarVerticesPoligono(solucion.vertices);
-            
-            // Si solo tenemos 2 vértices, agregamos el origen (0,0) si no está incluido
-            if (verticesOrdenados.length === 2) {
-                const contieneOrigen = verticesOrdenados.some(v => 
-                    Math.abs(v.x) < 1e-10 && Math.abs(v.y) < 1e-10);
-                
-                if (!contieneOrigen) {
-                    verticesOrdenados.push({x: 0, y: 0});
-                }
-            }
-            
-            datasets.push({
-                type: 'line', // Cambiar a tipo line para mejor control del relleno
-                label: 'Región Factible',
-                data: verticesOrdenados,
-                backgroundColor: 'rgba(255, 0, 0, 0.3)', // ROJO con transparencia
-                borderColor: 'rgba(255, 0, 0, 0.6)', // Borde rojo
-                borderWidth: 2,
-                pointRadius: 0,
-                pointHoverRadius: 0,
-                fill: true,
-                showLine: true,
-                tension: 0,
-                order: 1, // Renderizar primero (abajo)
-                spanGaps: false
-            });
-        }
-        
-        // 2. Líneas de restricción
+        // 1. Líneas de restricción
         restricciones.forEach((restriccion, index) => {
             const puntosLinea = generarPuntosRestriccion(restriccion, xMax, yMax);
             const color = colors[index % colors.length];
             
-            console.log(`Restricción ${index + 1}:`, restriccion, 'Puntos:', puntosLinea); // Debug
-            
             if (puntosLinea.length > 0) {
                 datasets.push({
-                    type: 'line', // Especificar tipo line
+                    type: 'line',
                     label: `R${index+1}: ${formatearRestriccion(restriccion)}`,
                     data: puntosLinea,
                     borderColor: color,
-                    backgroundColor: 'transparent', // Sin relleno para las líneas
+                    backgroundColor: 'transparent',
                     borderWidth: 2,
                     pointRadius: 0,
                     fill: false,
-                    showLine: true,
                     borderDash: restriccion.comparacion === '=' ? [] : [5, 5],
                     tension: 0,
-                    order: 2 // Renderizar después de la región factible
+                    order: 1
                 });
             }
         });
         
-        // 3. Vértices de la región factible
-        if (solucion.vertices && solucion.vertices.length > 0) {
-            datasets.push({
-                type: 'scatter', // Tipo scatter para puntos
-                label: 'Vértices Factibles',
-                data: solucion.vertices,
-                backgroundColor: 'rgba(74, 222, 128, 0.8)',
-                borderColor: 'rgba(74, 222, 128, 1)',
-                borderWidth: 2,
-                pointRadius: 6,
-                pointHoverRadius: 8,
-                showLine: false,
-                order: 3 // Renderizar encima
+        // 2. Región factible (área sombreada)
+if (solucion.factible) {
+    const esMinimizar = document.getElementById('objetivo-tipo').value === 'Minimizar';
+    const puntosRegion = [];
+    
+    // Función auxiliar para encontrar intersección entre dos líneas
+    function encontrarInterseccionLineas(r1, r2) {
+        const det = r1.x * r2.y - r1.y * r2.x;
+        if (Math.abs(det) < 1e-10) return null; // Líneas paralelas
+        
+        const x = (r2.y * r1.valor - r1.y * r2.valor) / det;
+        const y = (r1.x * r2.valor - r2.x * r1.valor) / det;
+        
+        return { x, y };
+    }
+    
+    if (esMinimizar) {
+        // Para MINIMIZACIÓN: La región factible se extiende hacia arriba y derecha
+        // Encontrar el punto de intersección entre restricciones
+        let puntoInterseccion = null;
+        if (restricciones.length >= 2) {
+            puntoInterseccion = encontrarInterseccionLineas(restricciones[0], restricciones[1]);
+        }
+        
+        // Encontrar intersecciones con los ejes
+        const interseccionesEjes = [];
+        restricciones.forEach(r => {
+            // Intersección con eje X (y = 0)
+            if (r.x !== 0) {
+                const x = r.valor / r.x;
+                if (x >= 0) {
+                    interseccionesEjes.push({x: x, y: 0});
+                }
+            }
+            
+            // Intersección con eje Y (x = 0)
+            if (r.y !== 0) {
+                const y = r.valor / r.y;
+                if (y >= 0) {
+                    interseccionesEjes.push({x: 0, y: y});
+                }
+            }
+        });
+        
+        // Para minimización, crear una región que se extienda hacia el infinito
+        // Usamos los bordes del gráfico como límites visuales
+        if (puntoInterseccion && puntoInterseccion.x >= 0 && puntoInterseccion.y >= 0) {
+            // Crear región desde el punto de intersección hacia los bordes
+            puntosRegion.push(puntoInterseccion);
+            
+            // Extender hacia la derecha
+            puntosRegion.push({x: xMax, y: puntoInterseccion.y});
+            puntosRegion.push({x: xMax, y: yMax});
+            
+            // Extender hacia arriba  
+            puntosRegion.push({x: puntoInterseccion.x, y: yMax});
+            
+            // Volver al punto inicial
+            puntosRegion.push(puntoInterseccion);
+        } else {
+            // Si no hay intersección clara, usar las intersecciones con ejes
+            interseccionesEjes.forEach(punto => {
+                if (esPuntoFactible(punto.x, punto.y, restricciones)) {
+                    puntosRegion.push(punto);
+                }
+            });
+            
+            // Agregar esquinas del gráfico que sean factibles
+            const esquinas = [
+                {x: xMax, y: 0},
+                {x: xMax, y: yMax},
+                {x: 0, y: yMax}
+            ];
+            
+            esquinas.forEach(esquina => {
+                if (esPuntoFactible(esquina.x, esquina.y, restricciones)) {
+                    puntosRegion.push(esquina);
+                }
             });
         }
         
-        // 4. Solución óptima
+    } else {
+        // Para MAXIMIZACIÓN: Región factible típicamente acotada
+        // 1. Agregar el origen si es factible
+        if (esPuntoFactible(0, 0, restricciones)) {
+            puntosRegion.push({x: 0, y: 0});
+        }
+        
+        // 2. Agregar intersecciones con los ejes
+        restricciones.forEach(r => {
+            // Intersección con eje X (y = 0)
+            if (r.x !== 0) {
+                const x = r.valor / r.x;
+                if (x >= 0 && esPuntoFactible(x, 0, restricciones)) {
+                    puntosRegion.push({x: x, y: 0});
+                }
+            }
+            
+            // Intersección con eje Y (x = 0)  
+            if (r.y !== 0) {
+                const y = r.valor / r.y;
+                if (y >= 0 && esPuntoFactible(0, y, restricciones)) {
+                    puntosRegion.push({x: 0, y: y});
+                }
+            }
+        });
+        
+        // 3. Agregar intersecciones entre restricciones
+        for (let i = 0; i < restricciones.length; i++) {
+            for (let j = i + 1; j < restricciones.length; j++) {
+                const interseccion = encontrarInterseccionLineas(restricciones[i], restricciones[j]);
+                if (interseccion && 
+                    interseccion.x >= -1e-6 && 
+                    interseccion.y >= -1e-6 && 
+                    esPuntoFactible(interseccion.x, interseccion.y, restricciones)) {
+                    puntosRegion.push(interseccion);
+                }
+            }
+        }
+    }
+    
+    // Eliminar puntos duplicados
+    const puntosUnicos = [];
+    puntosRegion.forEach(punto => {
+        const existe = puntosUnicos.some(p => 
+            Math.abs(p.x - punto.x) < 1e-6 && Math.abs(p.y - punto.y) < 1e-6
+        );
+        if (!existe) {
+            puntosUnicos.push(punto);
+        }
+    });
+    
+    // Ordenar puntos para formar un polígono cerrado
+    const puntosOrdenados = ordenarPuntosPoligono(puntosUnicos);
+    
+    if (puntosOrdenados.length >= 3) {
+        datasets.push({
+            type: 'line',
+            label: 'Región Factible',
+            data: puntosOrdenados,
+            backgroundColor: esMinimizar ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+            borderColor: esMinimizar ? 'rgba(34, 197, 94, 0.6)' : 'rgba(239, 68, 68, 0.6)',
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: true,
+            tension: 0,
+            order: 2
+        });
+    }
+}
+        
+        // 3. Solución óptima
         if (solucion.factible && solucion.x !== undefined && solucion.y !== undefined) {
             datasets.push({
-                type: 'scatter', // Tipo scatter para puntos
+                type: 'scatter',
                 label: 'Solución Óptima',
                 data: [{x: solucion.x, y: solucion.y}],
                 backgroundColor: 'rgba(220, 38, 38, 1)',
                 borderColor: 'rgba(255, 255, 255, 1)',
                 borderWidth: 3,
-                pointRadius: 10,
-                pointHoverRadius: 12,
+                pointRadius: 8,
                 showLine: false,
-                order: 4 // Renderizar al final (encima de todo)
+                order: 3
             });
         }
         
-        // Crear el gráfico con todos los datasets
+        // Crear el gráfico
         chart = new Chart(ctx, {
-            type: 'line', // Cambiar tipo base a 'line' para mejor soporte de relleno
-            data: {
-                datasets: datasets
-            },
+            type: 'line',
+            data: { datasets: datasets },
             options: getChartOptions(xMax, yMax)
         });
     }
 
-    // Calcular límites del gráfico de manera más robusta
+    // Función auxiliar para ordenar puntos de un polígono
+    function ordenarPuntosPoligono(puntos) {
+        if (puntos.length < 3) return puntos;
+        
+        // Encontrar el centroide
+        const centroide = {
+            x: puntos.reduce((sum, p) => sum + p.x, 0) / puntos.length,
+            y: puntos.reduce((sum, p) => sum + p.y, 0) / puntos.length
+        };
+        
+        // Ordenar por ángulo respecto al centroide
+        return puntos.slice().sort((a, b) => {
+            const anguloA = Math.atan2(a.y - centroide.y, a.x - centroide.x);
+            const anguloB = Math.atan2(b.y - centroide.y, b.x - centroide.x);
+            return anguloA - anguloB;
+        });
+    }
+
+    // Calcular límites del gráfico
     function calcularLimites(solucion, restricciones) {
-        let xMax = 10; // Valor mínimo por defecto
-        let yMax = 10; // Valor mínimo por defecto
+        let xMax = 15; // Aumentado para mejor visualización
+        let yMax = 15;
         
-        // Considerar vértices si existen
-        if (solucion.vertices && solucion.vertices.length > 0) {
-            const xVertices = solucion.vertices.map(v => v.x);
-            const yVertices = solucion.vertices.map(v => v.y);
-            xMax = Math.max(xMax, ...xVertices);
-            yMax = Math.max(yMax, ...yVertices);
-        }
-        
-        // Considerar la solución óptima
+        // Considerar solución óptima
         if (solucion.factible && solucion.x !== undefined && solucion.y !== undefined) {
-            xMax = Math.max(xMax, solucion.x);
-            yMax = Math.max(yMax, solucion.y);
+            xMax = Math.max(xMax, solucion.x * 1.8);
+            yMax = Math.max(yMax, solucion.y * 1.8);
         }
         
-        // Considerar las restricciones para encontrar intersecciones con los ejes
-        restricciones.forEach(restriccion => {
-            if (restriccion.x > 0 && restriccion.valor > 0) {
-                // Intersección con eje X (y = 0)
-                const xIntercept = restriccion.valor / restriccion.x;
-                xMax = Math.max(xMax, xIntercept);
-            }
-            
-            if (restriccion.y > 0 && restriccion.valor > 0) {
-                // Intersección con eje Y (x = 0)
-                const yIntercept = restriccion.valor / restriccion.y;
-                yMax = Math.max(yMax, yIntercept);
-            }
+        // Considerar intersecciones con ejes
+        restricciones.forEach(r => {
+            if (r.x > 0) xMax = Math.max(xMax, (r.valor / r.x) * 1.5);
+            if (r.y > 0) yMax = Math.max(yMax, (r.valor / r.y) * 1.5);
         });
         
-        // Agregar margen del 20%
-        xMax = Math.ceil(xMax * 1.2);
-        yMax = Math.ceil(yMax * 1.2);
-        
-        return { xMax, yMax };
+        return { xMax: Math.ceil(xMax), yMax: Math.ceil(yMax) };
     }
 
     // Generar puntos para dibujar una línea de restricción
